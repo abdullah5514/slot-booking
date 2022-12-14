@@ -50,7 +50,8 @@ class Api::V1::TimeslotsController < ApplicationController
     end
 
     def creating_date
-      date = params[:date].to_datetime
+      binding.break
+      date = params[:date].to_datetime.in_time_zone('Karachi')
       @start_time = Date.new(date.year, date.month, date.day).to_datetime + Time.parse(params[:start]).seconds_since_midnight.seconds
       @end_time = Date.new(date.year, date.month, date.day).to_datetime + Time.parse(params[:end]).seconds_since_midnight.seconds
     end

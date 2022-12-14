@@ -2,8 +2,9 @@ class Api::V1::TimestampsController < ApplicationController
   
     # GET /timestamps
     def index
-        render json: fetch_available_timeslot(params[:date])
-        ActionCable.server.broadcast("TimestampsChannel", {message: 'hello from rails'})
+        timeslots = fetch_available_timeslot(Time.zone.parse(params[:date]).getutc())
+        render json: timeslots
+        # ActionCable.server.broadcast("TimestampsChannel", {messasge: {start: 'asdf'}})
     end
 
     # private
@@ -12,21 +13,28 @@ class Api::V1::TimestampsController < ApplicationController
         selected_slots = Timeslot.where('start BETWEEN ? AND ?', selected_date.to_date, selected_date.to_date + 1.day)
         available_slots = []
         first_slot = 0
+        end_index = 0
+        pre_recorded_timeslots = default_timeslots 
         selected_indexes = []
-        default_timeslots.each_with_index do |timeslot, index|
-            unless (selected_slots.where(start: default_timeslots[first_slot][:start].to_datetime).present?)
-                unless selected_slots.where(end: default_timeslots[index][:end].to_datetime).present?
-                    if index.eql?(default_timeslots.length)
-                        available_slots << default_timeslots[index + 1]
+        booked_slots = []
+        if selected_slots.present? 
+            pre_recorded_timeslots.each_with_index do |timeslot, index|
+                if selected_slots.where(start: (pre_recorded_timeslots[first_slot][:start].to_datetime.in_time_zone('Karachi'))).present?
+                    unless selected_slots.where(end: default_timeslots[index][:end].to_datetime.in_time_zone('Karachi')).present?
                     else
-                        available_slots << default_timeslots[index]
+                        booked_slots += default_timeslots[first_slot..index]
+                        first_slot += 1
                     end
-                    
+                else
+                    first_slot += 1
                 end
             end
-            first_slot += 1
+            pre_recorded_timeslots - booked_slots
+
+        else
+            default_timeslots
         end
-        available_slots
+        
     end
     
     def default_timeslots
